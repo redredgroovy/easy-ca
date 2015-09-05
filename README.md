@@ -1,7 +1,7 @@
 # easy-ca
 OpenSSL wrapper scripts for managing basic CA functions
 
-A suite of bash scripts for automating very basic OpenSSL CA operations:
+A suite of bash scripts for automating very basic OpenSSL Certificate Authority operations:
 * Creating Root CAs
 * Creating Intermediate Signing CAs
 * Creating Server certificates (with optional subjectAltNames)
