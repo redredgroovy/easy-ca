@@ -96,7 +96,7 @@ $CA_DIR/csr/user-domain-com.client.csr
 Running **revoke-certificate** from within a CA installation allows you to revoke a certificate issued by that CA and update the CRL:
 
 ```
-$CA_DIR/bin/revoke-certificate -c $CA_DIR/certs/fqdn.domain.com.server.crt
+$CA_DIR/bin/revoke-certificate -c $CA_DIR/certs/fqdn-domain-com.server.crt
 ```
 
 **revoke-certificate** will prompt for the revocation reason. After the script is completed, the server CRL is updated and available for review:
