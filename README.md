@@ -60,7 +60,7 @@ $CA_DIR/bin/create-server -s fqdn.domain.com
 Optionally, you can specify one (or more) subjectAltNames to accompany the new certificate:
 
 ```
-$CA_DIR/bin/create-server -s fqdn.server.com -a alt1.domain.com -a alt2.domain.com
+$CA_DIR/bin/create-server -s fqdn.domain.com -a alt1.domain.com -a alt2.domain.com
 ```
 
 **create-server** will prompt for basic DN configuration, using the CA configuration as defaults. After the script is completed, the server certificate, key, and CSR are available for review:
