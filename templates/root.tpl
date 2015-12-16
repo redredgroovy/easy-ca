@@ -88,6 +88,7 @@ keyUsage                = critical,digitalSignature,keyEncipherment
 basicConstraints        = CA:false
 extendedKeyUsage        = serverAuth,clientAuth
 subjectKeyIdentifier    = hash
+subjectAltName          = $ENV::SAN
 authorityKeyIdentifier  = keyid:always
 authorityInfoAccess     = @issuer_info
 crlDistributionPoints   = @crl_info
