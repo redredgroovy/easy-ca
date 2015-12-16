@@ -1,7 +1,7 @@
 # easy-ca
 OpenSSL wrapper scripts for managing basic CA functions
 
-A suite of bash scripts for automating very basic OpenSSL CA operations:
+A suite of bash scripts for automating very basic OpenSSL Certificate Authority operations:
 * Creating Root CAs
 * Creating Intermediate Signing CAs
 * Creating Server certificates (with optional subjectAltNames)
@@ -60,7 +60,7 @@ $CA_DIR/bin/create-server -s fqdn.domain.com
 Optionally, you can specify one (or more) subjectAltNames to accompany the new certificate:
 
 ```
-$CA_DIR/bin/create-server -s fqdn.server.com -a alt1.domain.com -a alt2.domain.com
+$CA_DIR/bin/create-server -s fqdn.domain.com -a alt1.domain.com -a alt2.domain.com
 ```
 
 **create-server** will prompt for basic DN configuration, using the CA configuration as defaults. After the script is completed, the server certificate, key, and CSR are available for review:
@@ -93,13 +93,13 @@ $CA_DIR/csr/user-domain-com.client.csr
 
 ### Revoke a Certificate
 
-Running **revoke-certificate** from within a CA installation allows you to revoke a certificate issued by that CA and update the CRL:
+Running **revoke-cert** from within a CA installation allows you to revoke a certificate issued by that CA and update the CRL:
 
 ```
-$CA_DIR/bin/revoke-certificate -c $CA_DIR/certs/fqdn-domain-com.server.crt
+$CA_DIR/bin/revoke-cert -c $CA_DIR/certs/fqdn-domain-com.server.crt
 ```
 
-**revoke-certificate** will prompt for the revocation reason. After the script is completed, the server CRL is updated and available for review:
+**revoke-cert** will prompt for the revocation reason. After the script is completed, the server CRL is updated and available for review:
 
 ```
 $CA_DIR/crl/ca.crl
