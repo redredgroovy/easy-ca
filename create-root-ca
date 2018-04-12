@@ -38,6 +38,7 @@ echo
 init_ca_home ${HOME}
 generate_conf ${HOME}/bin/defaults.conf
 source ${HOME}/bin/defaults.conf
+export SAN=$CA_DOMAIN
 
 echo
 echo -n "Enter passphase for encrypting root CA key: "
