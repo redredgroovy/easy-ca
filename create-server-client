@@ -1,9 +1,9 @@
 #!/bin/bash
-# Derek Moore <derek.moore@gmail.com>
+# Created by Peter Novotny based on Derek Moore <derek.moore@gmail.com> server part
 
 usage() {
     echo "Usage: $0 -s SERVER_NAME [-a ALT_NAME] [-A]..."
-    echo "Issues a server certificate for SERVER_NAME"
+    echo "Issues a server and client certificate for SERVER_NAME as one file"
     echo
     echo "Options:"
     echo "    -s SERVER_NAME  Server hostname (commonName) for the new cert"
@@ -40,7 +40,7 @@ while getopts As:a: FLAG; do
 done
 
 if [ "${SERVER_NAME}" == "" ]; then
-    echo "ERROR: Server name empty"
+    echo "ERROR: Server client name empty"
     usage
 fi
 
@@ -53,7 +53,7 @@ SAFE_NAME=`echo ${SERVER_NAME} | sed 's/\*/star/g'`
 SAFE_NAME=`echo ${SAFE_NAME} | sed 's/[^A-Za-z0-9-]/-/g'`
 
 echo
-echo "Creating new SSL server certificate for:"
+echo "Creating new SSL server client certificate for:"
 echo "commonName: ${SERVER_NAME}"
 echo "subjectAltName: ${ALT_NAME}"
 echo
@@ -78,36 +78,37 @@ fi
 # Generate the server openssl config
 export CA_HOSTNAME=${SERVER_NAME}
 export SAN=${ALT_NAME}
-if [ -f conf/${SAFE_NAME}.server.conf ]; then
+if [ -f conf/${SAFE_NAME}.server_client.conf ]; then
     echo "WARNING: Configuration already exists for ${SAFE_NAME}"
-else 
-    template "${BIN_DIR}/templates/server.tpl" "conf/${SAFE_NAME}.server.conf"
-    echo "Template conf/${SAFE_NAME}.server.conf created "
+else
+    template "${BIN_DIR}/templates/server_client.tpl" "conf/${SAFE_NAME}.server_client.conf"
+    echo "Template conf/${SAFE_NAME}.server_client.conf created "
 fi
 
 # Create the server key and csr
-if [ -f csr/${SAFE_NAME}.server.csr ]; then
+if [ -f csr/${SAFE_NAME}.server_client.csr ]; then
     echo "WARNING: CSR already exists for ${SAFE_NAME}."
 else 
     openssl req -new -nodes ${OPENSSH_ADDITIONAL_PARAMETERS} \
-                -config conf/${SAFE_NAME}.server.conf \
-                -keyout private/${SAFE_NAME}.server.key \
-                -out csr/${SAFE_NAME}.server.csr
-    chmod 0400 private/${SAFE_NAME}.server.key
-    echo "Server CSR created csr/${SAFE_NAME}.server.csr"
+                -config conf/${SAFE_NAME}.server_client.conf \
+                -keyout private/${SAFE_NAME}.server_client.key \
+                -out csr/${SAFE_NAME}.server_client.csr
+    chmod 0400 private/${SAFE_NAME}.server_client.key
+    echo "Server client CSR created csr/${SAFE_NAME}.server_client.csr"
 fi
+
 # Create the server certificate
-if [ -f certs/${SAFE_NAME}.server.crt ]; then
+if [ -f certs/${SAFE_NAME}.server_client.crt ]; then
     echo "WARNING: CRT already exists for ${SAFE_NAME}"
 else 
     openssl ca -batch -notext \
                -config conf/ca.conf \
-               -in csr/${SAFE_NAME}.server.csr \
-               -out certs/${SAFE_NAME}.server.crt \
+               -in csr/${SAFE_NAME}.server_client.csr \
+               -out certs/${SAFE_NAME}.server_client.crt \
                -days 3650 \
-               -extensions server_ext \
+               -extensions server_client_ext \
                -passin env:CA_PASS
-    echo "Server CRT created certs/${SAFE_NAME}.server.crt"
+    echo "Server client CRT created certs/${SAFE_NAME}.server_client.crt"
 fi
 
 popd > /dev/null
@@ -115,3 +116,4 @@ popd > /dev/null
 echo
 echo "Server certificate created."
 echo
+

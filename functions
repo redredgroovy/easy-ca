@@ -7,6 +7,8 @@ create-root-ca
 create-signing-ca
 create-server
 create-client
+create-server-client
+create-one_liner
 revoke-cert
 functions
 "
@@ -51,13 +53,13 @@ init_ca_home() {
 
     # Ensure we're initializing an empty directory
     if [ -d "${HOME}" ]; then
-	echo "${HOME} already exists, exiting"
-	exit 1
+    echo "ERROR: ${HOME} already exists, exiting"
+    exit 1
     fi
 
     if ! mkdir -p "${HOME}"; then
-        echo "Unable to create ${HOME}, exiting"
-	exit 1
+        echo "ERROR: Unable to create ${HOME}, exiting"
+        exit 1
     fi
 
     pushd ${HOME} > /dev/null
@@ -74,6 +76,7 @@ init_ca_home() {
     mkdir -p conf
     mkdir -p csr
     mkdir -p private
+    mkdir -p one_liner
 
     # Secure key directories
     chmod 0700 ca/private
@@ -97,18 +100,26 @@ generate_conf() {
     DEST=$1
 
     echo -n "Short label for new CA [${CA_NAME}]: "
-    read NAME
+    if [ "${AUTOMODE}" = false ] ; then
+        read NAME
+    else
+        echo "${CA_NAME}"
+    fi
     if [ -n "${NAME}" ]; then
         CA_NAME=${NAME}
         CA_NAME=`echo ${CA_NAME} | sed 's/[^A-Za-z0-9-]/-/g'`
     fi
 
     echo -n "Domain name for new CA [${CA_DOMAIN}]: "
-    read DOMAIN
+    if [ "${AUTOMODE}" = false ] ; then
+        read DOMAIN
+    else
+        echo "${CA_DOMAIN}"
+    fi
     if [ -n "${DOMAIN}" ]; then
         CA_DOMAIN=${DOMAIN}
     elif [ -z "${CA_DOMAIN}" ]; then
-        echo "Domain is required."
+        echo "ERROR: Domain is required."
         exit 1
     fi
 
@@ -117,31 +128,51 @@ generate_conf() {
     echo
 
     echo -n "Default country code for new certificates [${CA_CERT_C}]: "
-    read CERT_C
+    if [ "${AUTOMODE}" = false ] ; then
+        read CERT_C
+    else
+        echo "${CA_CERT_C}"
+    fi
     if [ -n "${CERT_C}" ]; then
         CA_CERT_C=${CERT_C}
     fi
 
     echo -n "Default state for new certificates [${CA_CERT_ST}]: "
-    read CERT_ST
+    if [ "${AUTOMODE}" = false ] ; then
+        read CERT_ST
+    else
+        echo "${CA_CERT_ST}"
+    fi
     if [ -n "${CERT_ST}" ]; then
         CA_CERT_ST=${CERT_ST}
     fi
 
     echo -n "Default city for new certificates [${CA_CERT_L}]: "
-    read CERT_L
+    if [ "${AUTOMODE}" = false ] ; then
+        read CERT_L
+    else
+        echo "${CA_CERT_L}"
+    fi
     if [ -n "${CERT_L}" ]; then
         CA_CERT_L=${CERT_L}
     fi
 
     echo -n "Default org for new certificates [${CA_CERT_O}]: "
-    read CERT_O
+    if [ "${AUTOMODE}" = false ] ; then
+        read CERT_O
+    else
+        echo "${CA_CERT_O}"
+    fi
     if [ -n "${CERT_O}" ]; then
         CA_CERT_O=${CERT_O}
     fi
 
     echo -n "Default org unit for new certificates [${CA_CERT_OU}]: "
-    read CERT_OU
+    if [ "${AUTOMODE}" = false ] ; then
+        read CERT_OU
+    else
+        echo "${CA_CERT_OU}"
+    fi
     if [ -n "${CERT_OU}" ]; then
         CA_CERT_OU=${CERT_OU}
     fi
@@ -150,7 +181,11 @@ generate_conf() {
 
     CA_CERT_CN="${CA_CERT_O} Certificate Authority"
     echo -n "Common Name for CA certificate [${CA_CERT_CN}]: "
-    read CERT_CN
+    if [ "${AUTOMODE}" = false ] ; then
+        read CERT_CN
+    else
+        echo "${CA_CERT_CN}"
+    fi
     if [ -n "${CERT_CN}" ]; then
         CA_CERT_CN=${CERT_CN}
     fi

@@ -1,8 +1,8 @@
 [ req ]
-default_bits            = 2048                  # RSA key size
-default_days            = 730                   # How long to certify for
+default_bits            = 4096                  # RSA key size
+default_days            = 3650                  # How long to certify for
 encrypt_key             = no                    # Protect private key
-default_md              = sha256                # MD to use
+default_md              = sha512                # MD to use
 utf8                    = yes                   # Input is UTF-8
 string_mask             = utf8only              # Emit UTF-8 strings
 prompt                  = yes                   # Prompt for DN

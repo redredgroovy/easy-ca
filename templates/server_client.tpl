@@ -9,7 +9,7 @@ utf8                    = yes                   # Input is UTF-8
 string_mask             = utf8only              # Emit UTF-8 strings
 prompt                  = yes                   # Prompt for DN
 distinguished_name      = server_dn             # DN template
-req_extensions          = server_reqext         # Desired extensions
+req_extensions          = sc_reqext             # Desired extensions
 
 [ server_dn ]
 countryName			= "1. Country Name (2 letters) "
@@ -27,8 +27,8 @@ commonName			= "6. Common Name              "
 commonName_max			= 64
 commonName_default		= {{CA_HOSTNAME}}
 
-[ server_reqext ]
+[ sc_reqext ]
 keyUsage                = critical,digitalSignature,keyEncipherment
-extendedKeyUsage        = serverAuth
+extendedKeyUsage        = serverAuth,clientAuth
 subjectKeyIdentifier    = hash
 subjectAltName          = ${ENV::SAN}

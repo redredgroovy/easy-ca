@@ -2,20 +2,23 @@
 # Derek Moore <derek.moore@gmail.com>
 
 usage() {
-    echo "Usage: $0 -d CA_DIR"
+    echo "Usage: $0 -d CA_DIR [-A]"
     echo "Initializes a new root CA in CA_DIR"
     echo
     echo "Options:"
     echo "    -d CA_DIR  Target directory to be created and initialized"
+    echo "    -A         Automateion mode, password read from env_variable EASY_CA_PASS"
     echo
     exit 2
 }
 
 CA_DIR=
+AUTOMODE=false
 
-while getopts d: FLAG; do
+while getopts Ad: FLAG; do
     case $FLAG in
         d) CA_DIR=${OPTARG} ;;
+        A) AUTOMODE=true ;;
         *) usage ;;
     esac
 done
@@ -30,6 +33,7 @@ source ${BIN_DIR}/functions
 
 HOME=$CA_DIR
 CA_NAME=$( basename "${HOME}" )
+export SAN=""
 
 echo
 echo "Creating root CA in '${HOME}'"
@@ -39,19 +43,28 @@ init_ca_home ${HOME}
 generate_conf ${HOME}/bin/defaults.conf
 source ${HOME}/bin/defaults.conf
 
-echo
-echo -n "Enter passphase for encrypting root CA key: "
-read -s PASS1
-echo
-echo -n "Verifying - Enter passphase for encrypting root CA key: "
-read -s PASS2
-echo
-
-if [ "${PASS1}" != "${PASS2}" ]; then
-    echo "Passphrases did not match, exiting."
-    exit 1
+# Get the password
+if [ "${AUTOMODE}" = true ] ; then
+    if [ -z "${EASY_CA_PASS}" ] ; then
+        echo "ERROR: Automode set but no (or empty) password provided"
+        exit 1
+    else
+        export CA_PASS=${EASY_CA_PASS}
+    fi
+else
+    echo
+    echo -n "Enter passphase for encrypting root CA key: "
+    read -s PASS1
+    echo
+    echo -n "Verifying - Enter passphase for encrypting root CA key: "
+    read -s PASS2
+    echo
+    if [ "${PASS1}" != "${PASS2}" ]; then
+        echo "ERROR: Passphrases did not match, exiting."
+        exit 1
+    fi
+    export CA_PASS=${PASS1}
 fi
-export CA_PASS=${PASS1}
 
 pushd ${HOME} > /dev/null
 
@@ -59,7 +72,7 @@ pushd ${HOME} > /dev/null
 template "${BIN_DIR}/templates/root.tpl" "conf/ca.conf"
 
 # Create the root CA csr
-openssl genrsa -out ca/private/ca.key -passout env:CA_PASS 4096
+openssl genrsa -out ca/private/ca.key -passout env:CA_PASS 8192
 chmod 0400 ca/private/ca.key
 
 # Create the root CA csr
@@ -74,7 +87,7 @@ openssl ca -selfsign -batch -notext \
            -config conf/ca.conf \
            -in ca/ca.csr \
            -out ca/ca.crt \
-           -days 3652 \
+           -days 7300 \
            -extensions root_ca_ext \
            -passin env:CA_PASS
 
