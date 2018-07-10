@@ -2,25 +2,30 @@
 # Derek Moore <derek.moore@gmail.com>
 
 usage() {
-    echo "Usage: $0 -c CLIENT_NAME"
+    echo "Usage: $0 -c CLIENT_NAME [-A]"
     echo "Issues a client certificate for CLIENT_NAME"
     echo
     echo "Options:"
     echo "    -c CLIENT_NAME  Client name (commonName) for the new cert"
+    echo "    -A              Automateion mode, password read from env_variable EASY_CA_PASS"
     echo
     exit 2
 }
 
 CLIENT_NAME=
+AUTOMODE=false
+OPENSSH_ADDITIONAL_PARAMETERS=""
 
-while getopts c: FLAG; do
+while getopts Ac: FLAG; do
     case $FLAG in
         c) CLIENT_NAME=${OPTARG} ;;
+        A) AUTOMODE=true ;;
         *) usage ;;
     esac
 done
 
 if [ "${CLIENT_NAME}" == "" ]; then
+    echo "ERROR: Client name empty"
     usage
 fi
 
@@ -37,36 +42,56 @@ echo
 
 pushd ${BIN_DIR}/.. > /dev/null
 
-if [ -f conf/${SAFE_NAME}.client.conf ]; then
-    echo "Configuration already exists for '${CLIENT_NAME}', exiting."
-    exit 1
+if [ "${AUTOMODE}" = true ] ; then
+    if [ -z "${EASY_CA_PASS}" ] ; then
+        echo "ERROR: Automode set but no (or empty) password provided"
+        exit 1
+    else
+        export OPENSSH_ADDITIONAL_PARAMETERS="-batch"
+        export CA_PASS=${EASY_CA_PASS}
+    fi
+else
+    echo -n "Enter passphase for signing CA key: "
+    read -s PASS
+    echo
+    export CA_PASS=${PASS}
 fi
-
-echo -n "Enter passphase for signing CA key: "
-read -s PASS
-echo
-export CA_PASS=${PASS}
 
 # Generate the client cert openssl config
 export SAN=""
 export CA_USERNAME=${CLIENT_NAME}
-template "${BIN_DIR}/templates/client.tpl" "conf/${SAFE_NAME}.client.conf"
+if [ -f conf/${SAFE_NAME}.client.conf ]; then
+    echo "WARNING: Configuration already exists for '${CLIENT_NAME}'"
+else
+    template "${BIN_DIR}/templates/client.tpl" "conf/${SAFE_NAME}.client.conf"
+    echo "Template conf/${SAFE_NAME}.client.conf created "
+fi
 
 # Create the client key and csr
-openssl req -new -nodes \
-            -config conf/${SAFE_NAME}.client.conf \
-            -keyout private/${SAFE_NAME}.client.key \
-            -out csr/${SAFE_NAME}.client.csr
-chmod 0400 private/${SAFE_NAME}.client.key
+if [ -f csr/${SAFE_NAME}.client.csr ]; then
+    echo "WARNING: CSR already exists for ${SAFE_NAME}."
+else 
+    openssl req -new -nodes ${OPENSSH_ADDITIONAL_PARAMETERS} \
+                -config conf/${SAFE_NAME}.client.conf \
+                -keyout private/${SAFE_NAME}.client.key \
+                -out csr/${SAFE_NAME}.client.csr
+    chmod 0400 private/${SAFE_NAME}.client.key
+    echo "Client CSR created csr/${SAFE_NAME}.client.csr"
+fi
 
 # Create the client certificate
-openssl ca -batch -notext \
-           -config conf/ca.conf \
-           -in csr/${SAFE_NAME}.client.csr \
-           -out certs/${SAFE_NAME}.client.crt \
-           -days 730 \
-           -extensions client_ext \
-           -passin env:CA_PASS
+if [ -f certs/${SAFE_NAME}.client.crt ]; then
+    echo "WARNING: CRT already exists for ${SAFE_NAME}"
+else 
+    openssl ca -batch -notext \
+               -config conf/ca.conf \
+               -in csr/${SAFE_NAME}.client.csr \
+               -out certs/${SAFE_NAME}.client.crt \
+               -days 3650 \
+               -extensions client_ext \
+               -passin env:CA_PASS
+    echo "Client CRT created certs/${SAFE_NAME}.client.crt"
+fi
 
 popd > /dev/null
 

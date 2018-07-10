@@ -1,0 +1,131 @@
+#!/bin/bash
+
+usage() {
+    echo "Usage: $0 -R"
+    echo "Usage: $0 [-I] -s SERVER_NAME -t TYPE..."
+    echo "Usage: $0 -{F|f} <file name>"
+    echo "Creates one-liner suitable to be copied into various configuration files"
+    echo
+    echo "Options:"
+    echo "    -s SERVER_NAME  Server hostname (commonName) for the new cert"
+    echo "    -t TYPE         This can be server/client/server_client and must match the previously generated certificate"
+    echo "    -R              Creates root certificate one-liner"
+    echo "    -I              Invert order of certificate and private key in one-liner"
+    echo "    -v              Create separate vault"
+    echo "    -F              Creates one-liner from one given file and writes output to file .one_liner"
+    echo "    -f              Creates one-liner from one given file and writes output to the screen"
+    echo
+    exit 2
+}
+
+SERVER_NAME=
+TYPE=
+ROOT=false
+INVERTED=false
+VAULT=false
+DIRECT_FILE_INPUT=
+SCREEN_FILE_INPUT=
+
+while getopts vRIF:s:f:t: FLAG; do
+    case $FLAG in
+        s) SERVER_NAME=${OPTARG} ;;
+        t) TYPE=${OPTARG} ;;
+        v) VAULT=true ;;
+        R) ROOT=true ;;
+        I) INVERTED=true ;;
+        F) DIRECT_FILE_INPUT=${OPTARG} ;;
+        f) SCREEN_FILE_INPUT=${OPTARG} ;;
+        *) usage
+           ;;
+    esac
+done
+
+# Special case for processing directly one file
+if [[ ${DIRECT_FILE_INPUT} ]] ; then
+    echo "Checking existence of ${DIRECT_FILE_INPUT}..."
+    if [ -f ${DIRECT_FILE_INPUT} ] ; then
+        echo "Creating one liner for ${DIRECT_FILE_INPUT}"
+        cat ${DIRECT_FILE_INPUT} | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' > "${DIRECT_FILE_INPUT}.one_liner"
+    fi
+    exit 0
+fi
+if [[ ${SCREEN_FILE_INPUT} ]] ; then
+    echo "Checking existence of ${SCREEN_FILE_INPUT}..."
+    if [ -f ${SCREEN_FILE_INPUT} ] ; then
+        echo "Creating one liner for ${SCREEN_FILE_INPUT}"
+        cat ${SCREEN_FILE_INPUT} | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g'
+    fi
+    exit 0
+fi
+
+
+if [ "${ROOT}" = false ] ; then
+    if [ "${SERVER_NAME}" == "" ]; then
+        echo "ERROR: Server name empty"
+        usage
+    fi
+fi
+
+BIN_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+source ${BIN_DIR}/functions
+source ${BIN_DIR}/defaults.conf
+
+# Sanitize the commonName to make it suitable for use in filenames
+SAFE_NAME=`echo ${SERVER_NAME} | sed 's/\*/star/g'`
+SAFE_NAME=`echo ${SAFE_NAME} | sed 's/[^A-Za-z0-9-]/-/g'`
+
+echo
+echo "Creating one liner for ${SERVER_NAME}"
+echo
+
+pushd ${BIN_DIR}/.. > /dev/null
+
+if [ "${ROOT}" = true ] ; then
+    # Processing root certificate
+    if [ -f ca/ca.crt ] ; then
+        if [ -f one_liner/ca.one_liner ] ; then
+            echo "ERROR: one_liner/ca.one_liner exists no action taken"
+            popd > /dev/null
+            exit 1
+        else
+            cat ca/ca.crt | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' > one_liner/ca.one_liner
+            echo "One liner one_liner/ca.one_liner created"
+        fi
+    else
+        echo "ERROR: ca/ca.crt did not exists"
+        popd > /dev/null
+        exit 1
+    fi
+else
+    # Processing standard one liner file
+    if [ -f private/${SAFE_NAME}.${TYPE}.key ] ; then
+        if [ -f certs/${SAFE_NAME}.${TYPE}.crt ] ; then
+            if [ "${INVERTED}" = true ] ; then
+                cat certs/${SAFE_NAME}.${TYPE}.crt private/${SAFE_NAME}.${TYPE}.key | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' > one_liner/${SAFE_NAME}.${TYPE}.reversed.one_line
+            else
+                cat private/${SAFE_NAME}.${TYPE}.key certs/${SAFE_NAME}.${TYPE}.crt | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' > one_liner/${SAFE_NAME}.${TYPE}.one_line
+            fi
+        else
+            echo "ERROR: certs/${SAFE_NAME}.${TYPE}.crt NOT exists no action taken"
+            popd > /dev/null
+            exit 1
+        fi
+    else
+        echo "ERROR: private/${SAFE_NAME}.${TYPE}.key NOT exists no action taken"
+        popd > /dev/null
+        exit 1
+    fi
+fi
+
+if [ "${VAULT}" = true ] ; then
+    if [ -f one_liner/${SAFE_NAME}.${TYPE}.one_line ] ; then
+        # Creating vault data
+        cat one_liner/${SAFE_NAME}.${TYPE}.one_line | sed -r 's/(-----BEGIN PRIVATE KEY.*END PRIVATE KEY-----)\\n(-----BEGIN CERTIFICATE.*-----END CERTIFICATE-----)/\{\n  "id": "'"${SERVER_NAME}"'",\n  "key": "\1",\n  "cert": "\2"\n\}/g' >  one_liner/${SAFE_NAME}.${TYPE}.vault_separate
+    fi
+fi
+
+popd > /dev/null
+
+echo
+echo "one liner created"
+echo

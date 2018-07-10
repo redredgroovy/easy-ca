@@ -10,10 +10,10 @@ name_opt                = multiline,-esc_msb,utf8  # Display UTF-8 characters
 # Configuration for `openssl req ...`
 
 [ req ]
-default_bits            = 4096                  # RSA key size
-default_days            = 3652                  # How long to certify for
+default_bits            = 8192                  # RSA key size
+default_days            = 7300                  # How long to certify for
 encrypt_key             = yes                   # Protect private key
-default_md              = sha256                # MD to use
+default_md              = sha512                # MD to use
 utf8                    = yes                   # Input is UTF-8
 string_mask             = utf8only              # Emit UTF-8 strings
 prompt                  = no                    # Don't prompt for DN
@@ -47,7 +47,7 @@ crlnumber               = ca/db/crl.srl         # CRL number file
 database                = ca/db/certificate.db  # Index file
 new_certs_dir           = archive                # Certificate archive
 unique_subject          = no                    # Require unique subject
-default_md              = sha256                # MD to use
+default_md              = sha512                # MD to use
 policy                  = match_pol             # Default naming policy
 email_in_dn             = no                    # Add email to cert DN
 preserve                = no                    # Keep passed DN ordering
@@ -83,12 +83,22 @@ authorityInfoAccess     = @issuer_info
 crlDistributionPoints   = @crl_info
 
 # Extensions for signing certs issued by this signing CA
-[ server_ext ]
+[ server_client_ext ]
 keyUsage                = critical,digitalSignature,keyEncipherment
 basicConstraints        = CA:false
 extendedKeyUsage        = serverAuth,clientAuth
 subjectKeyIdentifier    = hash
-subjectAltName          = $ENV::SAN
+subjectAltName          = ${ENV::SAN}
+authorityKeyIdentifier  = keyid:always
+authorityInfoAccess     = @issuer_info
+crlDistributionPoints   = @crl_info
+
+[ server_ext ]
+keyUsage                = critical,digitalSignature,keyEncipherment
+basicConstraints        = CA:false
+extendedKeyUsage        = serverAuth
+subjectKeyIdentifier    = hash
+subjectAltName          = ${ENV::SAN}
 authorityKeyIdentifier  = keyid:always
 authorityInfoAccess     = @issuer_info
 crlDistributionPoints   = @crl_info

@@ -31,6 +31,7 @@ source ${BIN_DIR}/defaults.conf
 HOME=$CA_DIR
 PARENT=${BIN_DIR}/..
 CA_NAME=$( basename "${HOME}" )
+export SAN=""
 
 echo
 echo "Creating new signing sub-CA in '${HOME}'"
@@ -70,7 +71,7 @@ pushd ${HOME} > /dev/null
 template "${BIN_DIR}/templates/signing.tpl" "conf/ca.conf"
 
 # Create the signing CA key
-openssl genrsa -out ca/private/ca.key -passout env:CA_PASS 2048
+openssl genrsa -out ca/private/ca.key -passout env:CA_PASS 8192
 chmod 0400 ca/private/ca.key
 
 # Create the signing CA csr
@@ -86,7 +87,7 @@ openssl ca -batch -notext \
            -config conf/ca.conf \
            -in ${HOME}/ca/ca.csr \
            -out ${HOME}/ca/ca.crt \
-           -days 3652 \
+           -days 7300 \
            -extensions signing_ca_ext \
            -passin env:CA_PARENT_PASS
 popd > /dev/null
